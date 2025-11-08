@@ -1,50 +1,48 @@
 // api/upload.js
 import { put, list, del } from '@vercel/blob';
 
-
-function sanitize(name) {
-  return name.replace(/[\\s]+/g, '-').replace(/[\\\\/]+/g, '-').replace(/[^A-Za-z0-9._-]/g, '').slice(0, 200) || 'file';
-}
-
 export default async function handler(request) {
   try {
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
     const { searchParams } = new URL(request.url);
-    const room = (searchParams.get('room') || '').trim().toLowerCase();
-    if (!room) return new Response(JSON.stringify({ error: 'missing room' }), { status: 400 });
-
+    const room = (searchParams.get('room') || '').trim();
     const form = await request.formData();
-    const files = form.getAll('file').filter(Boolean);
-    if (!files.length) {
-      return new Response(JSON.stringify({ error: 'no files' }), { status: 400 });
-    }
+    const incomingFiles = form.getAll('file'); // 支持多文件
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
 
-    // 1) 列出并删除该 room 旧文件
-    let cursor; const toDelete = [];
+    // 1) 先删旧文件（避免 Store 越堆越多）
+    let cursor;
     do {
-      const res = await list({ prefix: `${room}/`, cursor, limit: 1000 });
-      toDelete.push(...res.blobs.map(b => b.url));
+      const res = await list({ prefix: `${room}/`, cursor, limit: 1000, token });
+      if (res.blobs.length) {
+        await del(res.blobs.map(b => b.url), { token });
+      }
       cursor = res.cursor;
     } while (cursor);
-    if (toDelete.length) await del(toDelete);
 
-    // 2) 逐个上传新文件（public 可直接外链）
-    const results = [];
-    for (const file of files) {
-      const fname = sanitize(file.name || 'file');
-      const blob = await put(`${room}/${fname}`, file, {
+    // 2) 上传新文件（覆盖同名）
+    const uploaded = [];
+    for (const f of incomingFiles) {
+      const pathname = `${room}/${f.name}`;
+      const blob = await put(pathname, f, {
         access: 'public',
-        addRandomSuffix: false,        // 不追加随机后缀，方便覆盖式语义（已先清空）
-        contentType: file.type || undefined,
+        token,
+        addRandomSuffix: false,   // 保持原名
+        allowOverwrite: true,     // 允许覆盖
+        contentType: f.type || undefined,
       });
-      results.push(blob);
+      uploaded.push(blob);
     }
 
-    return new Response(JSON.stringify({ ok: true, files: results }), { status: 200, headers: { 'content-type': 'application/json' } });
-  } catch (e) {
-    // 常见错误：请求体过大（Server Upload 在 Vercel 上约 4.5MB）
-    return new Response(JSON.stringify({ error: String(e?.message || e) }), { status: 500, headers: { 'content-type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: true, uploaded }), {
+      headers: { 'content-type': 'application/json' }
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: String(err?.message || err) }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
   }
 }
