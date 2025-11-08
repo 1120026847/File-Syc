@@ -1,7 +1,6 @@
 // api/list.js
 import { list } from '@vercel/blob';
 
-export const config = { runtime: 'nodejs18.x' };
 
 export default async function handler(request) {
   const { searchParams } = new URL(request.url);
