@@ -1,4 +1,3 @@
-// api/clear.js
 import { list, del } from '@vercel/blob';
 
 export default async function handler(request) {
@@ -9,7 +8,7 @@ export default async function handler(request) {
 
     let cursor, total = 0;
     do {
-      const res = await list({ prefix: `${room}/`, cursor, limit: 1000, token });
+      const res = await list({ prefix: `${room}/`, limit: 1000, cursor, token });
       if (res.blobs.length) {
         await del(res.blobs.map(b => b.url), { token });
         total += res.blobs.length;
@@ -21,9 +20,8 @@ export default async function handler(request) {
       headers: { 'content-type': 'application/json' }
     });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: String(err?.message || err) }),
-      { status: 500, headers: { 'content-type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: String(err?.message || err) }), {
+      status: 500, headers: { 'content-type': 'application/json' }
+    });
   }
 }
