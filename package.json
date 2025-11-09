@@ -1,9 +1,13 @@
 {
-  "name": "clipboard-im",
-  "private": true,
-  "type": "module",
+  "name": "file-transfer-app",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vercel dev"
+  },
   "dependencies": {
-    "@vercel/blob": "^0.24.0"
+    "@vercel/blob": "latest"
+  },
+  "devDependencies": {
+    "vercel": "latest"
   }
 }
-
