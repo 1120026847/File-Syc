@@ -1,280 +1,501 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>即时剪贴板 – 多端文件同步</title>
-  <meta name="color-scheme" content="light dark" />
-  <style>
-    :root{
-      --bg: #0b0c10; --fg:#e8ebf0; --muted:#a5b0c2; --brand:#6aa6ff; --accent:#7ee787;
-      --card:#14161c; --border: #262a33;
-    }
-    @media (prefers-color-scheme: light) {
-      :root{ --bg:#f7f8fb; --fg:#111318; --muted:#586173; --brand:#2b6af6; --accent:#17b26a; --card:#fff; --border:#e5e7ee; }
-    }
-    *{ box-sizing: border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0; background:var(--bg); color:var(--fg);
-      font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "SF Pro", sans-serif;
-      display:flex; align-items:center; justify-content:center; padding:24px;
-    }
-    .app{ width:min(980px, 100%); }
-    .header{
-      display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:16px;
-    }
-    .title{ font-weight:700; font-size:20px; letter-spacing:.2px; display:flex; align-items:center; gap:8px; }
-    .badge{ padding:2px 8px; border-radius:999px; background:var(--card); border:1px solid var(--border); color:var(--muted); font-size:12px;}
-    .room{
-      display:flex; gap:8px; width:100%; max-width:520px;
-    }
-    .input{ flex:1; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--fg); outline:none; }
-    .btn{
-      appearance:none; border:1px solid var(--border); background:var(--card); color:var(--fg);
-      padding:10px 14px; border-radius:12px; cursor:pointer; transition:.2s transform, .2s opacity, .2s background;
-    }
-    .btn:hover{ transform:translateY(-1px); }
-    .btn.primary{ background:var(--brand); border-color:transparent; color:#fff; }
-    .btn.ghost{ background:transparent; }
-    .grid{ display:grid; grid-template-columns:1fr; gap:16px; }
-    @media(min-width:800px){ .grid{ grid-template-columns: 1fr 1fr; } }
-    .card{
-      border:1px solid var(--border); background:var(--card); border-radius:16px; padding:16px;
-    }
-    .drop{
-      display:flex; align-items:center; justify-content:center; text-align:center;
-      min-height:200px; border:1.5px dashed var(--border); border-radius:16px; background:rgba(127,127,127,.04);
-      padding:16px; transition: .12s border-color, .12s background;
-    }
-    .drop.dragover{ border-color:var(--brand); background:rgba(64,128,255,.08); }
-    .muted{ color:var(--muted); }
-    .list{ display:flex; flex-direction:column; gap:10px; max-height:340px; overflow:auto; padding-right:4px; }
-    .item{
-      display:flex; align-items:center; gap:10px; justify-content:space-between; padding:10px; border:1px solid var(--border); border-radius:12px; background:rgba(127,127,127,.04);
-    }
-    .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .actions{ display:flex; gap:6px; flex-wrap:wrap; }
-    .small{ font-size:12px; }
-    .footer{ margin-top:8px; display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-    .link{ font-weight:600; color:var(--brand); text-decoration:none; word-break:break-all; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多端文件传输</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .user-id-section {
+            background: #f1f5f9;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .user-id {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4f46e5;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #4338ca;
+        }
+
+        .upload-area {
+            padding: 40px;
+            text-align: center;
+        }
+
+        .drop-zone {
+            border: 3px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 60px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8fafc;
+        }
+
+        .drop-zone.active {
+            border-color: #4f46e5;
+            background: #e0e7ff;
+        }
+
+        .drop-zone i {
+            font-size: 4rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #475569;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .browse-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .browse-btn:hover {
+            background: #4338ca;
+        }
+
+        .files-section {
+            padding: 0 40px 40px;
+        }
+
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .file-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .file-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .file-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+
+        .file-size {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .download-btn {
+            background: #10b981;
+            color: white;
+        }
+
+        .download-btn:hover {
+            background: #059669;
+        }
+
+        .copy-btn-small {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .copy-btn-small:hover {
+            background: #2563eb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .upload-area {
+                padding: 20px;
+            }
+            
+            .files-section {
+                padding: 0 20px 20px;
+            }
+            
+            .files-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="app">
-    <div class="header">
-      <div class="title">即时剪贴板 <span class="badge">跨设备 · 无需登录</span></div>
-      <div class="room">
-        <input id="alias" class="input" placeholder="设置你的专属地址（如：zhangsan）" />
-        <button class="btn" id="set-alias">跳转</button>
-        <button class="btn" id="copy-link">复制当前链接</button>
-      </div>
-    </div>
+    <div class="container">
+        <div class="header">
+            <h1>多端文件传输</h1>
+            <p>跨设备文件同步，简单快捷</p>
+        </div>
 
-    <div class="grid">
-      <div class="card">
-        <div id="drop" class="drop">
-          <div>
-            <div style="font-weight:700;margin-bottom:6px;">拖拽 / 粘贴 / 选择文件，同步到当前地址</div>
-            <div class="muted small">支持多文件。也可点击下方按钮选择本地文件。</div>
-            <div style="margin-top:12px;">
-              <input id="picker" type="file" multiple style="display:none;" />
-              <button class="btn primary" id="pick-btn">选择文件上传</button>
-              <button class="btn ghost" id="refresh-btn">刷新列表</button>
+        <div class="user-id-section">
+            <div>你的专属地址:</div>
+            <div class="user-id" id="userId"></div>
+            <button class="copy-btn" onclick="copyUserId()">复制地址</button>
+        </div>
+
+        <div class="upload-area">
+            <div class="drop-zone" id="dropZone">
+                <i>📁</i>
+                <h3>拖拽文件到此处</h3>
+                <p>或</p>
+                <button class="browse-btn" onclick="document.getElementById('fileInput').click()">
+                    选择文件
+                </button>
+                <input type="file" class="file-input" id="fileInput" multiple 
+                       onchange="handleFileSelect(this.files)">
             </div>
-          </div>
         </div>
-        <div class="footer small muted">
-          <div>当前地址：<a id="share" class="link" href="#"></a></div>
-          <div>提示：每次上传会覆盖并删除旧文件（节省 Blob 空间）。</div>
-        </div>
-      </div>
 
-      <div class="card">
-        <div style="font-weight:700;margin-bottom:8px;">已上传文件</div>
-        <div id="list" class="list">
-          <div class="muted small">暂无文件，上传后会显示在这里。</div>
+        <div class="files-section">
+            <h2>已上传文件</h2>
+            <div class="files-grid" id="filesGrid"></div>
         </div>
-      </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>处理中...</p>
+        </div>
     </div>
-  </div>
 
-<script>
-(function(){
-  'use strict';
+    <div class="notification" id="notification"></div>
 
-  // ---------- 路由 / 房间 ----------
-  function randId(n){ var s='abcdefghijklmnopqrstuvwxyz', r=''; for(var i=0;i<n;i++){ r+=s[Math.floor(Math.random()*s.length)]; } return r; }
-  var isRoot = (location.pathname === '/' || location.pathname === '');
-  if(isRoot){
-    var id = randId(5);
-    location.replace('/' + id);
-    return; // 结束本轮脚本，避免后续运行在旧路径上
-  }
-  var ROOM = decodeURIComponent(location.pathname.replace(/^\//,''));
-  var origin = location.origin || (location.protocol + '//' + location.host);
-  var roomUrl = origin + '/' + encodeURIComponent(ROOM);
-
-  // ---------- 顶部交互 ----------
-  var shareEl = document.getElementById('share');
-  var copyLinkBtn = document.getElementById('copy-link');
-  var aliasInput = document.getElementById('alias');
-  var setAliasBtn = document.getElementById('set-alias');
-  if(shareEl){ shareEl.textContent = roomUrl; shareEl.href = roomUrl; }
-
-  if(copyLinkBtn){
-    copyLinkBtn.addEventListener('click', function(){
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(roomUrl).then(function(){
-          copyLinkBtn.textContent = '已复制';
-          setTimeout(function(){ copyLinkBtn.textContent = '复制当前链接'; }, 1000);
-        });
-      }else{
-        // 兼容非常老的环境
-        window.prompt('复制当前链接', roomUrl);
-      }
-    });
-  }
-
-  if(setAliasBtn){
-    setAliasBtn.addEventListener('click', function(){
-      var v = (aliasInput.value || '').trim().replace(/\s+/g,'-').toLowerCase();
-      if(!v) return;
-      location.href = '/' + encodeURIComponent(v);
-    });
-  }
-
-  // ---------- 上传与列表 ----------
-  var drop = document.getElementById('drop');
-  var picker = document.getElementById('picker');
-  var pickBtn = document.getElementById('pick-btn');
-  var refreshBtn = document.getElementById('refresh-btn');
-  var listEl = document.getElementById('list');
-
-  function stop(e){ if(e){ e.preventDefault(); e.stopPropagation(); } }
-  if(drop){
-    ['dragenter','dragover','dragleave','drop'].forEach(function(ev){
-      drop.addEventListener(ev, stop, false);
-    });
-    drop.addEventListener('dragover', function(){ drop.classList.add('dragover'); });
-    drop.addEventListener('dragleave', function(){ drop.classList.remove('dragover'); });
-    drop.addEventListener('drop', function(e){
-      drop.classList.remove('dragover');
-      var fl = (e && e.dataTransfer && e.dataTransfer.files) ? Array.prototype.slice.call(e.dataTransfer.files) : [];
-      if(fl.length) uploadFiles(fl);
-    });
-  }
-
-  document.addEventListener('paste', function(e){
-    var fl = (e && e.clipboardData && e.clipboardData.files) ? Array.prototype.slice.call(e.clipboardData.files) : [];
-    if(fl.length) uploadFiles(fl);
-  });
-
-  if(pickBtn && picker){
-    pickBtn.addEventListener('click', function(){ picker.click(); });
-    picker.addEventListener('change', function(){
-      var fl = Array.prototype.slice.call(picker.files || []);
-      if(fl.length) uploadFiles(fl);
-      picker.value = '';
-    });
-  }
-
-  if(refreshBtn){ refreshBtn.addEventListener('click', listFiles); }
-
-  function fmtSize(n){
-    if(typeof n !== 'number') return '';
-    var u=['B','KB','MB','GB'], i=0, x=n;
-    while(x>=1024 && i<u.length-1){ x/=1024; i++; }
-    return (i ? x.toFixed(1) : Math.round(x)) + u[i];
-  }
-
-  function uploadFiles(files){
-    var form = new FormData();
-    for(var i=0;i<files.length;i++){ form.append('file', files[i], files[i].name); }
-    var oldTxt = pickBtn ? pickBtn.textContent : '';
-    if(pickBtn){ pickBtn.textContent = '上传中…'; pickBtn.disabled = true; }
-
-    fetch('/api/upload?room='+encodeURIComponent(ROOM), { method:'POST', body: form })
-      .then(function(res){
-        if(!res.ok){ return res.text().then(function(t){ throw new Error(t || res.status); }); }
-        return res.json();
-      })
-      .then(function(){ listFiles(); })
-      .catch(function(err){
-        alert('上传失败：' + err.message + '\n提示：Server Upload 单次请求体上限约 4.5MB。');
-      })
-      .finally(function(){
-        if(pickBtn){ pickBtn.textContent = oldTxt; pickBtn.disabled = false; }
-      });
-  }
-
-  function listFiles(){
-    fetch('/api/list?room='+encodeURIComponent(ROOM))
-      .then(function(res){ return res.json(); })
-      .then(function(data){
-        var files = (data && data.files) ? data.files : [];
-        if(!listEl) return;
-        if(!files.length){
-          listEl.innerHTML = '<div class="muted small">暂无文件</div>';
-          return;
-        }
-        listEl.innerHTML = '';
-        files.forEach(function(f){
-          var row = document.createElement('div'); row.className='item';
-          var left = document.createElement('div'); left.style.flex='1';
-          var name = (f.pathname || '').split('/').pop();
-          var ct = f.contentType || '';
-          var size = (typeof f.size === 'number') ? fmtSize(f.size) : '';
-          left.innerHTML = '<div class="name">'+ name +'</div><div class="muted small">'+ ct+' · '+size +'</div>';
-
-          var actions = document.createElement('div'); actions.className='actions';
-
-          var btnCopyLink = document.createElement('button'); btnCopyLink.className='btn small'; btnCopyLink.textContent='复制链接';
-          btnCopyLink.addEventListener('click', function(){
-            if(navigator.clipboard && navigator.clipboard.writeText){
-              navigator.clipboard.writeText(f.url);
-              btnCopyLink.textContent='已复制';
-              setTimeout(function(){ btnCopyLink.textContent='复制链接'; }, 800);
-            }else{
-              window.prompt('复制该链接', f.url);
+    <script>
+        // 获取用户ID（从URL路径）
+        function getUserId() {
+            const path = window.location.pathname;
+            if (path === '/' || path === '') {
+                // 如果没有指定用户ID，生成一个随机ID并跳转
+                const randomId = Math.random().toString(36).substring(2, 8);
+                window.history.replaceState(null, null, '/' + randomId);
+                return randomId;
             }
-          });
+            return path.substring(1); // 移除开头的斜杠
+        }
 
-          var aDownload = document.createElement('a'); aDownload.className='btn small'; aDownload.textContent='下载';
-          aDownload.href = f.downloadUrl || f.url; aDownload.download = '';
+        // 显示用户ID
+        const userId = getUserId();
+        document.getElementById('userId').textContent = window.location.origin + '/' + userId;
 
-          actions.appendChild(btnCopyLink);
-          actions.appendChild(aDownload);
-
-          // 尝试复制“文件本体”到系统剪贴板（仅在支持 ClipboardItem 的浏览器工作）
-          if(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
-            var btnCopyFile = document.createElement('button'); btnCopyFile.className='btn small'; btnCopyFile.textContent='复制文件';
-            btnCopyFile.addEventListener('click', function(){
-              fetch(f.url).then(function(r){ return r.blob(); }).then(function(b){
-                var data = {}; data[b.type || 'application/octet-stream'] = b;
-                return navigator.clipboard.write([ new ClipboardItem(data) ]);
-              }).then(function(){
-                btnCopyFile.textContent='已复制';
-                setTimeout(function(){ btnCopyFile.textContent='复制文件'; }, 800);
-              }).catch(function(){ alert('浏览器不支持把该类型写入剪贴板'); });
+        // 复制用户ID到剪贴板
+        function copyUserId() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                showNotification('地址已复制到剪贴板');
             });
-            actions.appendChild(btnCopyFile);
-          }
+        }
 
-          row.appendChild(left);
-          row.appendChild(actions);
-          listEl.appendChild(row);
+        // 显示通知
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = isError ? '#ef4444' : '#10b981';
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 拖拽区域事件处理
+        const dropZone = document.getElementById('dropZone');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
         });
-      })
-      .catch(function(){
-        if(listEl){ listEl.innerHTML = '<div class="muted small">加载失败</div>'; }
-      });
-  }
 
-  // 初次渲染 + 轮询“同步”
-  listFiles();
-  setInterval(listFiles, 3000);
-})();
-</script>
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropZone.classList.add('active');
+        }
+
+        function unhighlight() {
+            dropZone.classList.remove('active');
+        }
+
+        // 处理文件拖放
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        // 处理文件选择
+        function handleFileSelect(files) {
+            handleFiles(files);
+        }
+
+        // 处理文件上传
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            
+            try {
+                // 先删除旧文件
+                await fetch('/api/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId })
+                });
+
+                // 上传新文件
+                const uploadPromises = Array.from(files).map(file => uploadFile(file));
+                await Promise.all(uploadPromises);
+                
+                // 刷新文件列表
+                await loadFiles();
+                showNotification(`成功上传 ${files.length} 个文件`);
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('上传失败，请重试', true);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 上传单个文件
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('userId', userId);
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Upload failed');
+            }
+
+            return response.json();
+        }
+
+        // 加载文件列表
+        async function loadFiles() {
+            try {
+                const response = await fetch(`/api/files?userId=${userId}`);
+                const files = await response.json();
+                displayFiles(files);
+            } catch (error) {
+                console.error('Error loading files:', error);
+            }
+        }
+
+        // 显示文件列表
+        function displayFiles(files) {
+            const filesGrid = document.getElementById('filesGrid');
+            
+            if (!files || files.length === 0) {
+                filesGrid.innerHTML = '<p>暂无文件</p>';
+                return;
+            }
+
+            filesGrid.innerHTML = files.map(file => `
+                <div class="file-card">
+                    <div class="file-icon">📄</div>
+                    <div class="file-name">${file.filename}</div>
+                    <div class="file-size">${formatFileSize(file.size)}</div>
+                    <div class="file-actions">
+                        <button class="action-btn download-btn" onclick="downloadFile('${file.url}', '${file.filename}')">
+                            下载
+                        </button>
+                        <button class="action-btn copy-btn-small" onclick="copyFileUrl('${file.url}', '${file.filename}')">
+                            复制链接
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 下载文件
+        function downloadFile(url, filename) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // 复制文件链接
+        async function copyFileUrl(url, filename) {
+            try {
+                await navigator.clipboard.writeText(url);
+                showNotification(`已复制 ${filename} 的链接`);
+            } catch (error) {
+                console.error('Copy failed:', error);
+                showNotification('复制失败', true);
+            }
+        }
+
+        // 页面加载时获取文件列表
+        document.addEventListener('DOMContentLoaded', loadFiles);
+
+        // 定期检查新文件（每10秒）
+        setInterval(loadFiles, 10000);
+    </script>
 </body>
 </html>
