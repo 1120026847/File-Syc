@@ -1,45 +1,40 @@
-import { put, list, del } from '@vercel/blob';
+import { put } from '@vercel/blob';
 
 export default async function handler(request) {
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
+  }
+
   try {
-    if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+    const formData = await request.formData();
+    const file = formData.get('file');
+    const userId = formData.get('userId');
 
-    const { searchParams } = new URL(request.url);
-    const room = (searchParams.get('room') || '').trim();
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-
-    // 注意：服务端直传有 4.5MB 限制，先用小图测试；要传大文件请改用客户端直传
-    const form = await request.formData();
-    const incomingFiles = form.getAll('file'); // 支持多文件
-
-    // 先清空旧文件，保证“只保留最新一批”
-    let cursor;
-    do {
-      const res = await list({ prefix: `${room}/`, limit: 1000, cursor, token });
-      if (res.blobs.length) await del(res.blobs.map(b => b.url), { token });
-      cursor = res.cursor;
-    } while (cursor);
-
-    // 上传新文件
-    const uploaded = [];
-    for (const f of incomingFiles) {
-      const pathname = `${room}/${f.name}`;
-      const blob = await put(pathname, f, {
-        access: 'public',
-        token,
-        addRandomSuffix: false,
-        allowOverwrite: true,
-        contentType: f.type || undefined,
-      });
-      uploaded.push(blob);
+    if (!file || !userId) {
+      return new Response('Missing file or userId', { status: 400 });
     }
 
-    return new Response(JSON.stringify({ ok: true, uploaded }), {
-      headers: { 'content-type': 'application/json' }
+    const filename = `${userId}/${file.name}`;
+    
+    const blob = await put(filename, file, {
+      access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN
     });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err?.message || err) }), {
-      status: 500, headers: { 'content-type': 'application/json' }
+
+    return new Response(JSON.stringify({
+      url: blob.url,
+      filename: file.name,
+      size: file.size
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     });
+  } catch (error) {
+    console.error('Upload error:', error);
+    return new Response('Upload failed', { status: 500 });
   }
 }
+
+export const config = {
+  runtime: 'edge'
+};
